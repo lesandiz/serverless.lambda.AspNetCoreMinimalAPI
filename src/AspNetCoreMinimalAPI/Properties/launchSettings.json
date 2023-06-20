@@ -1,0 +1,21 @@
+{
+  "profiles": {
+    "AspNetCoreMinimalAPI": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "welcome",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ZPL_SERVICE_NAME": "AspNetCoreMinimalAPI",
+        "ZPL_ENVIRONMENT": "local"
+      },
+      "applicationUrl": "https://localhost:61344;http://localhost:61345"
+    },
+    "Mock Lambda Test Tool": {
+      "commandName": "Executable",
+      "commandLineArgs": "--port 5050",
+      "workingDirectory": ".\\bin\\$(Configuration)\\net6.0",
+      "executablePath": "%USERPROFILE%\\.dotnet\\tools\\dotnet-lambda-test-tool-6.0.exe"
+    }
+  }
+}

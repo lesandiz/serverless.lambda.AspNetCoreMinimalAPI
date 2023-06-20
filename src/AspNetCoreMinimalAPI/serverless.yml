@@ -1,0 +1,50 @@
+service: AspNetCoreMinimalAPI # NOTE: update this with your service name
+
+provider:
+  name: aws
+  runtime: dotnet6
+  region: eu-west-1
+  logRetentionInDays: 30
+  memorySize: 256
+  timeout: 10
+  tracing:
+    apiGateway: true
+    lambda: true
+  environment:
+    ASPNETCORE_ENVIRONMENT: ${sls:stage}
+    DOTNET_ENVIRONMENT: ${sls:stage}
+    ZPL_ENVIRONMENT: ${sls:stage}
+    ZPL_SERVICE_NAME: ${self:service}
+    OPENTELEMETRY_EXTENSION_LOG_LEVEL: Debug
+
+package:
+  individually: true
+
+functions:
+  hello:
+    handler: AspNetCoreMinimalAPI
+    package:
+      artifact: bin/release/net6.0/package.zip
+    layers:
+      - arn:aws:lambda:${aws:region}:901920570463:layer:aws-otel-collector-amd64-ver-0-74-0:1
+
+    events:
+    - http:
+        path: welcome
+        method: get
+
+    - http:
+        path: todos
+        method: get
+
+    - http:
+        path: todos
+        method: post
+
+    - http:
+        path: todos/{id}
+        method: get
+
+    - http:
+        path: todos/{id}
+        method: delete
