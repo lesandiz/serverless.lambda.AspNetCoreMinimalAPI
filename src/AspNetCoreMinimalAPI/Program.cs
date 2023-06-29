@@ -1,9 +1,11 @@
 using AspNetCoreMinimalAPI;
-using OpenTelemetry.Contrib.Instrumentation.AWSLambda.Implementation;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddLogging(builder.Configuration);
+builder.Services.AddLogging(builder.Environment, builder.Configuration);
+
+builder.Services.AddOpenTelemetry(builder.Environment, builder.Configuration);
 
 builder.Services.AddControllers();
 
@@ -15,13 +17,11 @@ builder.Services.AddSwaggerGen();
 // package will act as the webserver translating request and responses between the Lambda event source and ASP.NET Core.
 builder.Services.AddAWSLambdaHosting<InstrumentedAPIGatewayRestApiLambdaRuntimeSupportServer>();
 
-builder.Services.AddOpenTelemetry(builder.Environment, builder.Configuration);
-
 var app = builder.Build();
 
-app.UseSwagger();
 if (builder.Environment.IsDevelopment())
 {
+    app.UseSwagger();
     app.UseSwaggerUI();
 }
 
@@ -31,6 +31,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-app.MapGet("/welcome", () => "Welcome to running ASP.NET Core Minimal API on AWS Lambda");
+app.MapGet("/welcome", () => $"Welcome to v1.0 from {Environment.MachineName}. Trace: {Activity.Current?.Id}");
 
 app.Run();

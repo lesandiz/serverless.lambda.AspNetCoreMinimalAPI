@@ -6,7 +6,7 @@ namespace AspNetCoreMinimalAPI
 {
     public class LoggingMiddleware : IMiddleware
     {
-        public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+        public Task InvokeAsync(HttpContext context, RequestDelegate next)
         {
             var enrichers = new List<ILogEventEnricher>();
             
@@ -15,16 +15,21 @@ namespace AspNetCoreMinimalAPI
                 enrichers.Add(new PropertyEnricher("AwsRequestId", requestId));
             }
 
+            if (context.TryGetAltoGroupId(out var altoGroupId))
+            {
+                enrichers.Add(new PropertyEnricher("AltoGroupId", altoGroupId));
+            }
+
             if (enrichers.Any())
             {
                 using (LogContext.Push(enrichers.ToArray()))
                 {
-                    await next(context);
+                    return next(context);
                 }
             }
             else
             {
-                await next(context);
+                return next(context);
             }
         }
     }

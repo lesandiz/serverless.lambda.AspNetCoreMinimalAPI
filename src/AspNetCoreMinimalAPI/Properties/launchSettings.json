@@ -7,7 +7,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ZPL_SERVICE_NAME": "AspNetCoreMinimalAPI",
-        "ZPL_ENVIRONMENT": "local"
+        "ZPL_ENVIRONMENT": "local",
+        "OTEL_RESOURCE_ATTRIBUTES": "service.namespace=Api"
       },
       "applicationUrl": "https://localhost:61344;http://localhost:61345"
     },

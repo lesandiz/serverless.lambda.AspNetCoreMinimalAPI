@@ -12,22 +12,23 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Amazon.Lambda.AspNetCoreServer.Hosting" Version="1.6.0" />
-		<PackageReference Include="OpenTelemetry.Contrib.Instrumentation.AWSLambda" Version="1.1.0-beta1" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.AWSLambda" Version="1.1.0-beta.3" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.5.0" />
 		<PackageReference Include="Serilog.Expressions" Version="3.4.1" />
 		<PackageReference Include="Serilog.Extensions.Logging" Version="7.0.0" />
 		<PackageReference Include="Serilog.Formatting.Compact" Version="1.1.0" />
 		<PackageReference Include="Serilog.Settings.Configuration" Version="7.0.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-		<PackageReference Include="OpenTelemetry" Version="1.5.0" />
+		<PackageReference Include="OpenTelemetry" Version="1.5.1" />
 		<PackageReference Include="OpenTelemetry.Contrib.Extensions.AWSXRay" Version="1.2.0" />
 		<PackageReference Include="OpenTelemetry.Contrib.Instrumentation.AWS" Version="1.0.2" />
-		<PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.5.0" />
-		<PackageReference Include="OpenTelemetry.Exporter.Jaeger" Version="1.5.0" />
-		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.5.0" />
-		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.5.0" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.0.0-rc9.13" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.0.0-rc9.13" />
-		<PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.0.0-rc9.13" />
+		<PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.5.1" />
+		<PackageReference Include="OpenTelemetry.Exporter.Jaeger" Version="1.5.1" />
+		<PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.5.1" />
+		<PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.5.1" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.5.0-beta.1" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.5.0-beta.1" />
+		<PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.5.0-beta.1" />
 	</ItemGroup>
 </Project>
