@@ -5,6 +5,7 @@ using Amazon.Lambda.Serialization.SystemTextJson;
 using OpenTelemetry;
 using OpenTelemetry.Contrib.Extensions.AWSXRay.Resources;
 using OpenTelemetry.Contrib.Extensions.AWSXRay.Trace;
+using OpenTelemetry.Instrumentation.AWSLambda;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
