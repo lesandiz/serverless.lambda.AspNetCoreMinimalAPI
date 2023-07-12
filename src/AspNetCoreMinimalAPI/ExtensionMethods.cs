@@ -8,6 +8,7 @@ using OpenTelemetry.Contrib.Extensions.AWSXRay.Trace;
 using OpenTelemetry.Instrumentation.AWSLambda;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Sampler.AWS;
 using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Expressions;
@@ -31,8 +32,9 @@ namespace AspNetCoreMinimalAPI
             var config = new LoggerConfiguration()
                 .ReadFrom.Configuration(configuration, options)
                 .Enrich.FromLogContext()
-                .Enrich.WithProperty("Service", configuration.GetServiceName())
-                .Enrich.WithProperty("Environment", configuration.GetEnvironmentName());
+                .Enrich.WithProperty("ServiceName", configuration.GetServiceName())
+                .Enrich.WithProperty("Environment", configuration.GetEnvironmentName())
+                .Enrich.WithProperty("ServiceVersion", configuration.GetServiceVersion());
 
             if (environment.IsDevelopment())
             {
@@ -64,13 +66,16 @@ namespace AspNetCoreMinimalAPI
             var serviceVersion = configuration.GetServiceVersion();
             var serviceInstanceId = Guid.NewGuid().ToString();
 
+            var resourceBuilder = ResourceBuilder
+                .CreateDefault()
+                .AddService(serviceName, serviceVersion: serviceVersion, autoGenerateServiceInstanceId: false, serviceInstanceId: serviceInstanceId)
+                .AddTelemetrySdk()
+                .AddEnvironmentVariableDetector()
+                .AddDetector(new AWSECSResourceDetector());
+
             var openTelemetryBuilder = collection.AddOpenTelemetry()
-                .ConfigureResource(builder => builder
-                    .AddService(serviceName, serviceVersion: serviceVersion, autoGenerateServiceInstanceId: false, serviceInstanceId: serviceInstanceId)
-                    .AddTelemetrySdk()
-                    .AddEnvironmentVariableDetector()
-                    .AddDetector(new AWSECSResourceDetector()))
                 .WithTracing(builder => builder
+                    .SetResourceBuilder(resourceBuilder)
                     .AddXRayTraceId() // for generating AWS X-Ray compliant trace IDs
                     .AddSource(serviceName)
                     .AddAWSInstrumentation() // for tracing calls to AWS services via AWS SDK for .NET
@@ -83,23 +88,21 @@ namespace AspNetCoreMinimalAPI
                         opt.SetDbStatementForStoredProcedure = true;
                         opt.RecordException = true;
                     })
-                    .AddOtlpExporter()) // default address localhost:4317
-                .WithMetrics(builder => builder
-                    .AddMeter(serviceName)
-                    //.AddRuntimeInstrumentation()
-                    //.AddHttpClientInstrumentation()
-                    //.AddAspNetCoreInstrumentation()
-                    .AddOtlpExporter());
+                    //.AddOtlpExporter(opt => opt.ExportProcessorType = ExportProcessorType.Simple) // default address localhost:4317
+                    .AddOtlpExporter(opt => opt.ExportProcessorType = ExportProcessorType.Batch) // default address localhost:4317
+                    .SetSampler(AWSXRayRemoteSampler.Builder(resourceBuilder.Build())
+                        .SetPollingInterval(TimeSpan.FromSeconds(5)) // 5 seconds for testing, 5 min sensible default for production
+                        .Build())
+                    ); 
 
+            
+            
             if (environment.IsDevelopment())
             {
                 openTelemetryBuilder.WithTracing(builder => builder.AddConsoleExporter());
-                openTelemetryBuilder.WithMetrics(builder => builder.AddConsoleExporter());
             }
 
             Sdk.SetDefaultTextMapPropagator(new AWSXRayPropagator());
-
-            collection.AddSingleton(new Meter(serviceName));
             collection.AddSingleton(TracerProvider.Default.GetTracer(serviceName));
 
             return collection;

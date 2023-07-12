@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Amazon.CloudWatch.EMF.Logger;
+using Amazon.CloudWatch.EMF.Model;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using OpenTelemetry.Trace;
 using System.Collections.Concurrent;
 using System.Diagnostics.Metrics;
@@ -12,16 +15,14 @@ public class TodosController : ControllerBase
     private static ConcurrentDictionary<Guid, TodoItem> _todos = new ConcurrentDictionary<Guid, TodoItem>();
 
     private readonly ILogger<TodosController> _logger;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly Tracer _tracer;
-    private readonly Meter _meter;
-    private readonly Counter<int> _newTodoCounter;
 
-    public TodosController(ILogger<TodosController> logger, Tracer tracer, Meter meter)
+    public TodosController(ILoggerFactory loggerFactory, Tracer tracer)
     {
-        _logger = logger;
+        _logger = loggerFactory.CreateLogger<TodosController>();
+        _loggerFactory = loggerFactory;
         _tracer = tracer;
-        _meter = meter;
-        _newTodoCounter = _meter.CreateCounter<int>("NewTodo");
     }
 
     [HttpGet]
@@ -40,9 +41,16 @@ public class TodosController : ControllerBase
             span.SetAttribute("itemId", item.Id.ToString());
         }
 
-        _newTodoCounter.Add(1);
-
-        _logger.LogInformation("New item added with id {id}", item.Id);        
+        _logger.LogInformation("New item added with id {id}", item.Id);
+        
+        using var metricsLogger = new MetricsLogger();
+        var dimensions = new DimensionSet();
+        dimensions.AddDimension("Service", "AspNetCoreMinimalAPI");        
+        metricsLogger.SetNamespace("TestEMF");
+        metricsLogger.SetDimensions(dimensions);
+        metricsLogger.PutMetric("NewTodo", 1, Unit.COUNT);
+        metricsLogger.PutProperty("TodoItemId", item.Id.ToString());
+        metricsLogger.PutMetadata("Controller", nameof(TodosController));
 
         var result = new ObjectResult(item);
         result.StatusCode = StatusCodes.Status201Created;

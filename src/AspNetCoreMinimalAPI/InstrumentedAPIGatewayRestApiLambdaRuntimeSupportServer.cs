@@ -22,8 +22,8 @@ namespace AspNetCoreMinimalAPI
             var innerHandler = new APIGatewayRestApiMinimalApi(serviceProvider).FunctionHandlerAsync;
 
             // Wrap original handler to create OpenTelemetry parent trace
-            var outerHandler = (APIGatewayProxyRequest input, ILambdaContext context) =>
-                AWSLambdaWrapper.Trace(TracerProvider.Default, innerHandler, input, context);
+            var outerHandler = (APIGatewayProxyRequest input, ILambdaContext context) => 
+            AWSLambdaWrapper.Trace(TracerProvider.Default, innerHandler, input, context);                
             
             return HandlerWrapper.GetHandlerWrapper(outerHandler, _serializer);
         }

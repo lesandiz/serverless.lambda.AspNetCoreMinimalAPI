@@ -16,6 +16,8 @@ provider:
     ZPL_ENVIRONMENT: ${sls:stage}
     ZPL_SERVICE_NAME: ${self:service}
     OPENTELEMETRY_EXTENSION_LOG_LEVEL: Debug
+    OTEL_RESOURCE_ATTRIBUTES: service.namespace=Api
+    OTEL_SERVICE_NAME: AspNetCoreMinimalAPIEnvVar
 
 package:
   individually: true
