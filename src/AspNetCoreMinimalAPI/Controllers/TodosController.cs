@@ -1,6 +1,4 @@
-﻿using Amazon.CloudWatch.EMF.Logger;
-using Amazon.CloudWatch.EMF.Model;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Trace;
 using System.Collections.Concurrent;
@@ -42,15 +40,6 @@ public class TodosController : ControllerBase
         }
 
         _logger.LogInformation("New item added with id {id}", item.Id);
-        
-        using var metricsLogger = new MetricsLogger();
-        var dimensions = new DimensionSet();
-        dimensions.AddDimension("Service", "AspNetCoreMinimalAPI");        
-        metricsLogger.SetNamespace("TestEMF");
-        metricsLogger.SetDimensions(dimensions);
-        metricsLogger.PutMetric("NewTodo", 1, Unit.COUNT);
-        metricsLogger.PutProperty("TodoItemId", item.Id.ToString());
-        metricsLogger.PutMetadata("Controller", nameof(TodosController));
 
         var result = new ObjectResult(item);
         result.StatusCode = StatusCodes.Status201Created;

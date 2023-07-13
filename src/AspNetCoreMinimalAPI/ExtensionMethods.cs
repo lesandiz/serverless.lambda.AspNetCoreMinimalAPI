@@ -12,6 +12,7 @@ using OpenTelemetry.Sampler.AWS;
 using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Expressions;
+using Serilog.Formatting.Compact;
 using Serilog.Settings.Configuration;
 using Serilog.Templates;
 using System.Diagnostics.Metrics;
@@ -42,9 +43,7 @@ namespace AspNetCoreMinimalAPI
             }
             else
             {
-                // This format is required for Cloudwatch to correlate logs with traces in X-Ray based on AwsRequestId
-                // Although not pure JSON, search expressions in Cloudwatch work on the JSON part of the log entry
-                config.WriteTo.Console(new ExpressionTemplate("{UtcDateTime(@t):o}\t{AwsRequestId}\t{@l}\t{ {@t, @m, @l, @x, ..@p} }\n"));
+                config.WriteTo.Console(new RenderedCompactJsonFormatter());
             }
 
             Log.Logger = config.CreateLogger();
