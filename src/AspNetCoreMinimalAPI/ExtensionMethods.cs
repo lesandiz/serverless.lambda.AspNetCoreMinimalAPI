@@ -8,7 +8,6 @@ using OpenTelemetry.Contrib.Extensions.AWSXRay.Trace;
 using OpenTelemetry.Instrumentation.AWSLambda;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
-using OpenTelemetry.Sampler.AWS;
 using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Expressions;
@@ -80,21 +79,9 @@ namespace AspNetCoreMinimalAPI
                     .AddAWSInstrumentation() // for tracing calls to AWS services via AWS SDK for .NET
                     .AddAWSLambdaInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddAspNetCoreInstrumentation(opt => opt.RecordException = true)
-                    .AddSqlClientInstrumentation(opt =>
-                    {
-                        opt.SetDbStatementForText = true;
-                        opt.SetDbStatementForStoredProcedure = true;
-                        opt.RecordException = true;
-                    })
-                    //.AddOtlpExporter(opt => opt.ExportProcessorType = ExportProcessorType.Simple) // default address localhost:4317
-                    .AddOtlpExporter(opt => opt.ExportProcessorType = ExportProcessorType.Batch) // default address localhost:4317
-                    .SetSampler(AWSXRayRemoteSampler.Builder(resourceBuilder.Build())
-                        .SetPollingInterval(TimeSpan.FromSeconds(5)) // 5 seconds for testing, 5 min sensible default for production
-                        .Build())
-                    ); 
-
-            
+                    .AddAspNetCoreInstrumentation()
+                    .AddSqlClientInstrumentation()
+                    .AddOtlpExporter());            
             
             if (environment.IsDevelopment())
             {

@@ -13,13 +13,11 @@ public class TodosController : ControllerBase
     private static ConcurrentDictionary<Guid, TodoItem> _todos = new ConcurrentDictionary<Guid, TodoItem>();
 
     private readonly ILogger<TodosController> _logger;
-    private readonly ILoggerFactory _loggerFactory;
     private readonly Tracer _tracer;
 
-    public TodosController(ILoggerFactory loggerFactory, Tracer tracer)
+    public TodosController(ILogger<TodosController> logger, Tracer tracer)
     {
-        _logger = loggerFactory.CreateLogger<TodosController>();
-        _loggerFactory = loggerFactory;
+        _logger = logger;
         _tracer = tracer;
     }
 

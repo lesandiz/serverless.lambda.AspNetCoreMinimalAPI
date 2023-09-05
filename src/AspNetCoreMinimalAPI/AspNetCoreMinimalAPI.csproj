@@ -31,9 +31,4 @@
 		<PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.5.0-beta.1" />
 		<PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.5.0-beta.1" />
 	</ItemGroup>
-	<ItemGroup>
-	  <Reference Include="OpenTelemetry.Sampler.AWS">
-	    <HintPath>dependencies\OpenTelemetry.Sampler.AWS.dll</HintPath>
-	  </Reference>
-	</ItemGroup>
 </Project>
