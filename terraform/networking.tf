@@ -24,6 +24,18 @@ data "aws_subnets" "todolist_public" {
   }
 }
 
+data "aws_subnets" "todolist_private" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.todolist.id]
+  }
+
+  filter {
+    name   = "tag:Name"
+    values = ["*private*"]
+  }
+}
+
 data "aws_security_groups" "todolist" {
   filter {
     name   = "vpc-id"

@@ -30,18 +30,18 @@ resource "aws_ecs_cluster_capacity_providers" "todolist" {
   }
 }
 
-resource "aws_alb" "todolist" {
-  name               = "todolist-alb"
-  internal           = false
-  load_balancer_type = "application"
-  subnets            = data.aws_subnets.todolist_public.ids
-  security_groups    = data.aws_security_groups.todolist.ids
+resource "aws_lb" "todolist" {
+  name               = "todolist-alb-internal"
+  internal           = true
+  load_balancer_type = "network" # Required for VPC Link
+  subnets            = data.aws_subnets.todolist_private.ids
+  #security_groups    = data.aws_security_groups.todolist.ids
 }
 
 resource "aws_lb_target_group" "todolist" {
   name        = "todolist-target-group"
   port        = 80
-  protocol    = "HTTP"
+  protocol    = "TCP"
   target_type = "ip"
   vpc_id      = data.aws_vpc.todolist.id
   health_check {
@@ -54,10 +54,10 @@ resource "aws_lb_target_group" "todolist" {
   }
 }
 
-resource "aws_alb_listener" "todolist" {
-  load_balancer_arn = aws_alb.todolist.arn
+resource "aws_lb_listener" "todolist" {
+  load_balancer_arn = aws_lb.todolist.arn
   port              = "80"
-  protocol          = "HTTP"
+  protocol          = "TCP"
 
   default_action {
     type             = "forward"

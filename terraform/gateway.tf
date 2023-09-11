@@ -5,6 +5,11 @@ resource "aws_api_gateway_rest_api" "todolist" {
   }
 }
 
+resource "aws_api_gateway_vpc_link" "todolist" {
+  name        = "todolist"
+  target_arns = [aws_lb.todolist.arn]
+}
+
 resource "aws_api_gateway_resource" "main" {
   rest_api_id = aws_api_gateway_rest_api.todolist.id
   parent_id   = aws_api_gateway_rest_api.todolist.root_resource_id
@@ -29,7 +34,7 @@ resource "aws_api_gateway_integration" "main" {
   type                    = "HTTP_PROXY"
   integration_http_method = "ANY"
   connection_type         = "INTERNET" # should be VCP_LINK for private backend
-  uri                     = "http://${aws_alb.todolist.dns_name}/{proxy}"
+  uri                     = "http://${aws_lb.todolist.dns_name}/{proxy}"
   timeout_milliseconds    = 29000 # 50-29000
 
   cache_key_parameters = ["method.request.path.proxy"]
@@ -45,10 +50,35 @@ resource "aws_api_gateway_deployment" "main" {
 }
 
 resource "aws_api_gateway_stage" "todolist" {
-  deployment_id = aws_api_gateway_deployment.main.id
-  rest_api_id   = aws_api_gateway_rest_api.todolist.id
-  stage_name    = "v1"
+  deployment_id        = aws_api_gateway_deployment.main.id
+  rest_api_id          = aws_api_gateway_rest_api.todolist.id
+  stage_name           = "v1"
   xray_tracing_enabled = true
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.gateway_todolist.arn
+    format = jsonencode({
+      "requestId" : "$context.requestId",
+      "extendedRequestId" : "$context.extendedRequestId",
+      "ip" : "$context.identity.sourceIp",
+      "caller" : "$context.identity.caller",
+      "cognitoIdentityId" : "$context.identity.cognitoIdentityId",
+      "user" : "$context.identity.user",
+      "userAgent" : "$context.identity.userAgent",
+      "requestTime" : "$context.requestTime",
+      "httpMethod" : "$context.httpMethod",
+      "resourcePath" : "$context.resourcePath",
+      "apiKeyId" : "$context.identity.apiKeyId",
+      "status" : "$context.status",
+      "protocol" : "$context.protocol",
+      "path" : "$context.path",
+      "responseLength" : "$context.responseLength",
+      "errorMessage" : "$context.error.message",
+      "authorizerPrincipalId" : "$context.authorizer.principalId",
+      "responseLatency" : "$context.responseLatency",
+      "requestBody" : "$input.body"
+    })
+
+  }
 }
 
 # Cloudwatch
