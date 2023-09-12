@@ -35,7 +35,7 @@ resource "aws_lb" "todolist" {
   internal           = true
   load_balancer_type = "network" # Required for VPC Link
   subnets            = data.aws_subnets.todolist_private.ids
-  #security_groups    = data.aws_security_groups.todolist.ids
+  security_groups    = data.aws_security_groups.todolist.ids
 }
 
 resource "aws_lb_target_group" "todolist" {
@@ -155,8 +155,8 @@ resource "aws_ecs_service" "todolist" {
   }
 
   network_configuration {
-    subnets          = data.aws_subnets.todolist.ids
+    subnets          = data.aws_subnets.todolist_private.ids
     security_groups  = data.aws_security_groups.todolist.ids # optional
-    assign_public_ip = true                                  # optional
+    assign_public_ip = false                                  # optional
   }
 }

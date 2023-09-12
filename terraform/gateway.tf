@@ -27,13 +27,15 @@ resource "aws_api_gateway_method" "main" {
   }
 }
 
+# Private Integration via VPC Link with Network LB
 resource "aws_api_gateway_integration" "main" {
   rest_api_id             = aws_api_gateway_rest_api.todolist.id
   resource_id             = aws_api_gateway_resource.main.id
   http_method             = aws_api_gateway_method.main.http_method
   type                    = "HTTP_PROXY"
   integration_http_method = "ANY"
-  connection_type         = "INTERNET" # should be VCP_LINK for private backend
+  connection_type         = "VPC_LINK" # should be VPC_LINK for private backend
+  connection_id           = aws_api_gateway_vpc_link.todolist.id
   uri                     = "http://${aws_lb.todolist.dns_name}/{proxy}"
   timeout_milliseconds    = 29000 # 50-29000
 
@@ -80,6 +82,18 @@ resource "aws_api_gateway_stage" "todolist" {
 
   }
 }
+
+resource "aws_api_gateway_method_settings" "all" {
+  rest_api_id = aws_api_gateway_rest_api.todolist.id
+  stage_name  = aws_api_gateway_stage.todolist.stage_name
+  method_path = "*/*"
+
+  settings {
+    metrics_enabled = true
+    logging_level   = "INFO" # Log Group: API-Gateway-Execution-Logs_{rest-api-id}/{stage_name}
+  }
+}
+
 
 # Cloudwatch
 resource "aws_cloudwatch_log_group" "gateway_todolist" {
