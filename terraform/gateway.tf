@@ -3,6 +3,7 @@
 # - https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-vs-rest.html
 # - https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html
 # - https://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-with-private-integration.html
+# - https://adrin-mukherjee.medium.com/get-more-out-of-lambda-authorizers-use-response-context-c4cdbe1cf8ce
 
 # REST over HTTP:
 # - Rate limiting and throttling
@@ -14,8 +15,9 @@
 # - Create custom domain
 # - Define models
 # - Create gateway/stages/methods from OpenApi definition
-# - Create custom authorizer
 # - Add trigger to aws_api_gateway_deployment
+# - Customise error response from lambda authorizer
+# - Cost estimations
 
 
 resource "aws_api_gateway_rest_api" "todolist" {
@@ -64,7 +66,10 @@ resource "aws_api_gateway_integration" "main" {
 
   cache_key_parameters = ["method.request.path.proxy"]
   request_parameters = {
-    "integration.request.path.proxy" = "method.request.path.proxy"
+    "integration.request.path.proxy"                   = "method.request.path.proxy"
+    "integration.request.header.z-authorizer-scope"    = "context.authorizer.scope"
+    "integration.request.header.z-authorizer-clientId" = "context.authorizer.clientId"
+    "integration.request.header.z-authorizer-sub"      = "context.authorizer.sub"
   }
 
 }
@@ -143,14 +148,14 @@ resource "aws_xray_sampling_rule" "todolist_api_sampling_rule" {
   host           = "*"
   url_path       = "*"
   service_name   = "todolist/*" # <api_name>/<stage_name>
-  service_type   = "*"
-  resource_arn   = "*"
+  service_type   = "AWS::ApiGateway::*"
+  resource_arn   = aws_api_gateway_stage.todolist_v1.arn
   attributes     = {}
 }
 
 # Lambda Authorizer (global, part of common infrastructure)
 data "aws_lambda_function" "authorizer" {
-  function_name = "api-gateway-custom-authorizer"
+  function_name = "api-gateway-lambda-authorizer"
 }
 
 resource "aws_api_gateway_authorizer" "todolist" {

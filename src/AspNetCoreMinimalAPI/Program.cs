@@ -8,6 +8,7 @@ builder.Services.AddLogging(builder.Environment, builder.Configuration);
 builder.Services.AddOpenTelemetry(builder.Environment, builder.Configuration);
 
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
 
 // Add Swagger/OpenAPI support
 builder.Services.AddEndpointsApiExplorer();
@@ -31,6 +32,10 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-app.MapGet("/welcome", () => $"Welcome to v1.0 from {Environment.MachineName}. Trace: {Activity.Current?.Id}");
+app.MapGet("/welcome", (IHttpContextAccessor ctx) =>
+{
+    var clientId = ctx.HttpContext.Request.Headers["z-authorizer-clientId"];
+    return $"Welcome to v1.0 from {Environment.MachineName}. Trace: {Activity.Current?.Id}. ClientId: {clientId}";
+});
 
 app.Run();
