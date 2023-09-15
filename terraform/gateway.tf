@@ -1,3 +1,23 @@
+# References
+# - https://github.com/turnerlabs/terraform-ecs-fargate-apigateway/tree/master/env/dev
+# - https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-vs-rest.html
+# - https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html
+# - https://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-with-private-integration.html
+
+# REST over HTTP:
+# - Rate limiting and throttling
+# - Caching
+# - Canary deployments
+# - Monitoring: X-Ray tracing, excecution logs
+
+# TODO
+# - Create custom domain
+# - Define models
+# - Create gateway/stages/methods from OpenApi definition
+# - Create custom authorizer
+# - Add trigger to aws_api_gateway_deployment
+
+
 resource "aws_api_gateway_rest_api" "todolist" {
   name = "todolist"
   endpoint_configuration {
@@ -19,11 +39,14 @@ resource "aws_api_gateway_resource" "main" {
 resource "aws_api_gateway_method" "main" {
   rest_api_id      = aws_api_gateway_rest_api.todolist.id
   resource_id      = aws_api_gateway_resource.main.id
-  authorization    = "NONE"
+  authorization    = "CUSTOM"
+  authorizer_id    = aws_api_gateway_authorizer.todolist.id
   http_method      = "ANY"
   api_key_required = false
   request_parameters = {
-    "method.request.path.proxy" = true
+    "method.request.path.proxy"           = true
+    "method.request.header.Authorization" = true
+    "method.request.header.X-CustomToken" = true
   }
 }
 
@@ -46,12 +69,14 @@ resource "aws_api_gateway_integration" "main" {
 
 }
 
+# Changes to Gateway should be deployed every time
+# https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-deploy-api.html
 resource "aws_api_gateway_deployment" "main" {
   depends_on  = [aws_api_gateway_integration.main]
   rest_api_id = aws_api_gateway_rest_api.todolist.id
 }
 
-resource "aws_api_gateway_stage" "todolist" {
+resource "aws_api_gateway_stage" "todolist_v1" {
   deployment_id        = aws_api_gateway_deployment.main.id
   rest_api_id          = aws_api_gateway_rest_api.todolist.id
   stage_name           = "v1"
@@ -85,15 +110,15 @@ resource "aws_api_gateway_stage" "todolist" {
 
 resource "aws_api_gateway_method_settings" "all" {
   rest_api_id = aws_api_gateway_rest_api.todolist.id
-  stage_name  = aws_api_gateway_stage.todolist.stage_name
+  stage_name  = aws_api_gateway_stage.todolist_v1.stage_name
   method_path = "*/*"
 
   settings {
-    metrics_enabled = true
-    logging_level   = "INFO" # Log Group: API-Gateway-Execution-Logs_{rest-api-id}/{stage_name}
+    metrics_enabled    = true
+    logging_level      = "INFO" # Log Group: API-Gateway-Execution-Logs_{rest-api-id}/{stage_name}
+    data_trace_enabled = true   # Full Request and Response Logs
   }
 }
-
 
 # Cloudwatch
 resource "aws_cloudwatch_log_group" "gateway_todolist" {
@@ -101,23 +126,77 @@ resource "aws_cloudwatch_log_group" "gateway_todolist" {
   retention_in_days = 7
 }
 
+# AWS would create the log group by default with a 'Never expire' retention policy
+resource "aws_cloudwatch_log_group" "api_gateway_execution_logs" {
+  name              = "API-Gateway-Execution-Logs_${aws_api_gateway_rest_api.todolist.id}/${aws_api_gateway_stage.todolist_v1.stage_name}"
+  retention_in_days = "7"
+}
+
 # AWS Xray
 resource "aws_xray_sampling_rule" "todolist_api_sampling_rule" {
-  rule_name      = "todolist"
-  priority       = 1
+  rule_name      = "todolist-api-gateway"
+  priority       = 9900
   version        = 1
-  reservoir_size = 0
-  fixed_rate     = 0
+  reservoir_size = 1
+  fixed_rate     = 0.05
   http_method    = "*"
   host           = "*"
   url_path       = "*"
-  service_name   = "todolist"
+  service_name   = "todolist/*" # <api_name>/<stage_name>
   service_type   = "*"
   resource_arn   = "*"
   attributes     = {}
 }
 
-//The API Gateway endpoint
+# Lambda Authorizer (global, part of common infrastructure)
+data "aws_lambda_function" "authorizer" {
+  function_name = "api-gateway-custom-authorizer"
+}
+
+resource "aws_api_gateway_authorizer" "todolist" {
+  name                             = "todolist"
+  rest_api_id                      = aws_api_gateway_rest_api.todolist.id
+  authorizer_uri                   = data.aws_lambda_function.authorizer.invoke_arn
+  type                             = "REQUEST"
+  identity_source                  = "method.request.header.Authorization,method.request.header.X-CustomToken"
+  authorizer_result_ttl_in_seconds = 300 # cached for 5 min
+  authorizer_credentials           = aws_iam_role.invocation_role.arn
+}
+
+data "aws_iam_policy_document" "invocation_assume_role" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["apigateway.amazonaws.com"]
+    }
+
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "invocation_role" {
+  name               = "api_gateway_auth_invocation"
+  path               = "/"
+  assume_role_policy = data.aws_iam_policy_document.invocation_assume_role.json
+}
+
+data "aws_iam_policy_document" "invocation_policy" {
+  statement {
+    effect    = "Allow"
+    actions   = ["lambda:InvokeFunction"]
+    resources = [data.aws_lambda_function.authorizer.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "invocation_policy" {
+  name   = "default"
+  role   = aws_iam_role.invocation_role.id
+  policy = data.aws_iam_policy_document.invocation_policy.json
+}
+
+# The API Gateway endpoint
 output "api_gateway_endpoint" {
-  value = aws_api_gateway_stage.todolist.invoke_url
+  value = aws_api_gateway_stage.todolist_v1.invoke_url
 }
